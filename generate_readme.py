@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ''' Python script to generate a stub README.md files from a plugin.json file '''
 import json
 import argparse
@@ -5,9 +6,9 @@ import os
 import sys
 import io
 
-parser = argparse.ArgumentParser(description = 'Generate README.md (and optional LICENSE) from plugin.json metadata')
-parser.add_argument('filename', type = argparse.FileType('r'), help = 'path to the plugin.json file')
-parser.add_argument("-f", "--force", help = 'will automatically overwrite existing files', action='store_true')
+parser = argparse.ArgumentParser(description='Generate README.md (and optional LICENSE) from plugin.json metadata')
+parser.add_argument('filename', type=argparse.FileType('r'), help='path to the plugin.json file', default="plugin.json")
+parser.add_argument("-f", "--force", help='will automatically overwrite existing files', action='store_true')
 
 args = parser.parse_args()
 
@@ -37,14 +38,18 @@ elif ('license' in plugin and 'name' in plugin['license']):
 else:
 	license = ''
 
+if 'installInstructions' in plugin:
+	install = "## Installation Instructions"
+	for os in plugin['installInstructions']:
+		install += "\n\n### {}\n\n{}".format(os, plugin['installInstructions'][os])
+
 if 'minimumBinaryNinjaVersion' in plugin:
 	minimum = '## Minimum Version\n\nThis plugin requires the following minimum version of Binary Ninja:\n\n'
-	for chan in plugin['minimumBinaryNinjaVersion']:
-		version = plugin['minimumBinaryNinjaVersion'][chan]
-		minimum += u" * {chan} - {version}\n".format(chan = chan, version = version)
+	minimum += u" * {}\n".format(plugin['minimumBinaryNinjaVersion'])
 	minimum += '\n'
 else:
 	minimum = ''
+
 
 if 'dependencies' in plugin:
 	dependencies = u'## Required Dependencies\n\nThe following dependencies are required for this plugin:\n\n'
@@ -60,13 +65,14 @@ Author: **{author}**
 _{description}_
 ## Description:
 {longdescription}
+{install}
 {minimum}
 {dependencies}
 {license}
 '''.format(PluginName = plugin['name'], version = plugin['version'],
 		   author = plugin['author'], description = plugin['description'],
 		   longdescription = plugin['longdescription'], license = license,
-		   dependencies = dependencies, minimum = minimum)
+		   dependencies = dependencies, minimum = minimum, install = install)
 
 print("Writing {outputfile}".format(outputfile=outputfile))
 io.open(outputfile, 'w', encoding='utf8').write(template)
