@@ -38,18 +38,20 @@ elif ('license' in plugin and 'name' in plugin['license']):
 else:
 	license = ''
 
-if 'installInstructions' in plugin:
+if 'installinstructions' in plugin:
 	install = "## Installation Instructions"
-	for os in plugin['installInstructions']:
-		install += "\n\n### {}\n\n{}".format(os, plugin['installInstructions'][os])
+	for os in plugin['installinstructions']:
+		install += "\n\n### {}\n\n{}".format(os, plugin['installinstructions'][os])
 
-if 'minimumBinaryNinjaVersion' in plugin:
+if 'minimumbinaryninjaversion' in plugin:
 	minimum = '## Minimum Version\n\nThis plugin requires the following minimum version of Binary Ninja:\n\n'
-	minimum += u" * {}\n".format(plugin['minimumBinaryNinjaVersion'])
+	minimum += u" * {}\n".format(plugin['minimumbinaryninjaversion'])
 	minimum += '\n'
 else:
 	minimum = ''
 
+if 'pluginmetadataversion' in plugin:
+	metadataVersion = "## Metadata Version\n\n{}\n\n".format(plugin['pluginmetadataversion'])
 
 if 'dependencies' in plugin:
 	dependencies = u'## Required Dependencies\n\nThe following dependencies are required for this plugin:\n\n'
@@ -69,10 +71,12 @@ _{description}_
 {minimum}
 {dependencies}
 {license}
+{metadataVersion}
 '''.format(PluginName = plugin['name'], version = plugin['version'],
 		   author = plugin['author'], description = plugin['description'],
 		   longdescription = plugin['longdescription'], license = license,
-		   dependencies = dependencies, minimum = minimum, install = install)
+		   dependencies = dependencies, minimum = minimum, install = install,
+		   metadataVersion = metadataVersion)
 
 print("Writing {outputfile}".format(outputfile=outputfile))
 io.open(outputfile, 'w', encoding='utf8').write(template)
