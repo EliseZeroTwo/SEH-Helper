@@ -8,8 +8,25 @@ import io
 import datetime
 import pprint
 import tempfile
+from builtins import input
+import sys, tempfile, os
+from subprocess import call
 
 currentpluginmetadataversion = 2
+
+# def getEditorData(message):
+# 	EDITOR = os.environ.get('EDITOR','vim')
+
+# 	initial_message = message
+# 	edited_message = ""
+# 	with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+# 		tf.write(initial_message.encode("utf-8"))
+# 		tf.flush()
+# 		call([EDITOR, tf.name])
+
+# 		tf.seek(0)
+# 		edited_message = tf.read().decode("utf-8")
+# 	return edited_message
 
 validPluginTypes = ["core", "ui", "binaryview", "architecture", "helper"]
 validApis = ["python2", "python3"]
@@ -18,7 +35,7 @@ requiredLicenseKeys = ["name", "text"]
 
 def validateList(data, name, validList):
 	if name not in data:
-		print("Warning: '{}' filed doesn't exist".format(name))
+		print("Warning: '{}' field doesn't exist".format(name))
 		return False
 	elif not isinstance(data[name], list):
 		print("Error: '{}' field isn't a list".format(name))
@@ -35,7 +52,7 @@ def validateString(data, name):
 	if name not in data:
 		print("Error: '{}' field doesn't exist".format(name))
 		return False
-	elif not isinstance(data[name], unicode) and not isinstance(data[name], str):
+	elif type(data[name]).__name__ not in ("unicode", "str"): # a python 2/3 compliant check for string type
 		print("Error: '{}' field is {} not a string".format(name, type(data[name])))
 		return False
 	return True
@@ -64,7 +81,7 @@ def validateStringMap(data, name, validKeys, requiredKeys=None):
 				print("Error: required subkey '{}' not in {}".format(key, name))
 				success = False
 
-	for key, value in data[name].items():
+	for key in data[name].keys():
 		if key not in validKeys:
 			print("Error: key '{}' not is not in the set of valid keys {}".format(key, validKeys))
 			success = False
@@ -105,7 +122,7 @@ def getCombinationSelection(validList, prompt, maxItems=None):
 		print(prompt)
 		for i, item in enumerate(validList):
 			print("\t{:>3}: {}".format(i, item))
-		items = filter(None, raw_input(prompt2).split(","))
+		items = filter(None, input(prompt2).split(","))
 		result = []
 		success = True
 		for item in items:
@@ -138,30 +155,30 @@ licenseTypes = {
 def generatepluginmetadata():
 	data = {}
 	data["pluginmetadataversion"] = 2
-	data["name"] = raw_input("Enter plugin name: ")
-	data["author"] = raw_input("Enter your name or the name you want this plugin listed under. ")
+	data["name"] = input("Enter plugin name: ")
+	data["author"] = input("Enter your name or the name you want this plugin listed under: ")
 	data["type"] = getCombinationSelection(validPluginTypes, "Which types of plugin is this? ")
 	data["api"] = getCombinationSelection(validApis, "Which api's are supported? ")
-	data["description"] = raw_input("Enter a short description of this plugin: ")
-	data["longdescription"] = raw_input("Enter a longer description of this plugin: ")
+	data["description"] = input("Enter a short description of this plugin (50 characters max): ")
+	data["longdescription"] = input("Enter a full description of this plugin (Markdown formatted): ")
 	data["license"] = {}
 
 	licenseTypeNames = ["Other"]
 	licenseTypeNames.extend(licenseTypes.keys())
 	data["license"]["name"] = getCombinationSelection(licenseTypeNames, "Enter the license type of this plugin:", 1)[0]
 	if data["license"]["name"] == "Other":
-		data["license"]["name"] = raw_input("Enter License Type: ")
-		data["license"]["text"] = raw_input("Enter License Text: ")
+		data["license"]["name"] = input("Enter License Type: ")
+		data["license"]["text"] = input("Enter License Text: ")
 	else:
 		data["license"]["text"] = licenseTypes[data["license"]["name"]]
 
 	year = datetime.datetime.now().year
 	holder = data["author"]
 
-	answer = raw_input("Is this the correct copyrigtht information?\n\tCopyright {year} {holder}\n[Y/n]: ".format(year=year, holder=holder))
+	answer = input("Is this the correct copyrigtht information?\n\tCopyright {year} {holder}\n[Y/n]: ".format(year=year, holder=holder))
 	if answer not in ("Y", "y", ""):
-		year = raw_input("Enter copyright year: ")
-		holder = raw_input("Enter copyright holder: ")
+		year = input("Enter copyright year: ")
+		holder = input("Enter copyright holder: ")
 
 	data["license"]["text"] = "Copyright {year} {holder}\n\n".format(year=year, holder=holder) + data["license"]["text"]
 	data["platforms"] = getCombinationSelection(validPlatforms, "Which platforms are supported? ")
@@ -169,103 +186,137 @@ def generatepluginmetadata():
 	data["installinstructions"] = {}
 	for platform in data["platforms"]:
 		print("Enter Markdown formatted installation directions for the following platform: ")
-		data["installinstructions"][platform] = raw_input("{}: ".format(platform))
-	data["version"] = raw_input("Enter the version string for this plugin. ")
-	data["minimumbinaryninjaversion"] = int(raw_input("Enter the minimum build number that you've successfully tested this plugin with: "))
+		data["installinstructions"][platform] = input("{}: ".format(platform))
+	data["version"] = input("Enter the version string for this plugin. ")
+	data["minimumbinaryninjaversion"] = int(input("Enter the minimum build number that you've successfully tested this plugin with: "))
 	return data
+
+
+readmeTemplate = u"""# {name} (v{version})
+Author: **{author}**
+_{description}_
+## Description:
+{longdescription}
+{install}
+## Minimum Version\n\nThis plugin requires the following minimum version of Binary Ninja:\n\n * {minimum}\n"
+{dependencies}
+## License\n\nThis plugin is released under a {license} license.
+## Metadata Version\n\n{metadataVersion}\n"""
+
+def generateReadme(plugin):
+		install = None
+		if "installinstructions" in plugin:
+			install = "\n\n## Installation Instructions"
+			for platform in plugin["installinstructions"]:
+				install += "\n\n### {}\n\n{}".format(platform, plugin["installinstructions"][platform])
+
+		if "dependencies" in plugin:
+			dependencies = u"\n\n## Required Dependencies\n\nThe following dependencies are required for this plugin:\n\n"
+			for dependency in plugin["dependencies"]:
+				dependencylist = u", ".join(plugin["dependencies"][dependency])
+				dependencies += u" * {dependency} - {dependencylist}\n".format(dependency = dependency, dependencylist = dependencylist)
+			dependencies += "\n"
+		else:
+			dependencies = ""
+
+		return readmeTemplate.format(name=plugin["name"], version=plugin["version"],
+				author=plugin["author"], description=plugin["description"],
+				longdescription=plugin["longdescription"], install=install,
+				minimum=plugin["minimumbinaryninjaversion"], dependencies=dependencies,
+				license=plugin["license"]["name"], metadataVersion=plugin["pluginmetadataversion"])
+
 
 def main():
 	parser = argparse.ArgumentParser(description="Generate README.md (and optional LICENSE) from plugin.json metadata")
-	parser.add_argument("filename", type=argparse.FileType("r"), help="path to the plugin.json file", default="plugin.json")
-	parser.add_argument("-f", "--force", help="will automatically overwrite existing files", action="store_true")
-	parser.add_argument("-i", "--interactive", help="interactively generate plugin.json file", action="store_true")
+	parser.add_argument("filename", type=str, help="path to the plugin.json file", default="plugin.json")
+	parser.add_argument("-a", "--all", help="Generate all supporting information needed (plugin.json, README.md, LICENSE)", action="store_true")
+	parser.add_argument("-p", "--plugin", help="Interactively generate plugin.json file", action="store_true")
+	parser.add_argument("-r", "--readme", help="Automatically generate README.md", action="store_true")
+	parser.add_argument("-l", "--license", help="Automatically generate LICENSE file", action="store_true")
+	parser.add_argument("-f", "--force", help="Force overwrite of existing files", action="store_true")
+	parser.add_argument("-v", "--validate", help="Validate existing plugin.json only", action="store_true")
 	args = parser.parse_args()
 
-	if args.interactive:
+	if args.validate:
+		if validateRequiredFields(json.load(io.open(args.filename, "r", encoding="utf8"))["plugin"]):
+			print("Successfully validated json file")
+		else:
+			print("Error: json validation failed")
+		return
+
+	if args.all:
+		args.plugin = True
+		args.readme = True
+		args.license = True
+
+	if args.plugin:
 		plugin = generatepluginmetadata()
 		pp = pprint.PrettyPrinter(indent=4)
 		pp.pprint(plugin)
 	else:
-		plugin = json.load(args.filename)["plugin"]
+		try:
+			plugin = json.load(io.open(args.filename, "r", encoding="utf8"))["plugin"]
+		except json.JSONDecodeError:
+			print("File {} doesn't contain valid json".format(args.filename))
+			return
+		except Exception:
+			print("File {} doesn't exist".format(args.filename))
+			return
+
 
 	if validateRequiredFields(plugin):
 		print("Successfully validated json file")
 	else:
 		print("Error: json validation failed")
-		sys.exit(0)
+		return
 
-	outputfile = os.path.join(os.path.dirname(args.filename.name), "README.md")
-	licensefile = os.path.join(os.path.dirname(args.filename.name), "LICENSE")
+	if "python2" in plugin["api"] and "python3" not in plugin["api"]:
+		print("Warning: This python plugin doesn't support python3, python2 support will soon be deprecated.")
+		print(" Please consider upgrading you plugin to support python3")
 
-	if not args.force and (os.path.isfile(outputfile) or os.path.isfile(licensefile)):
-		print("Cowardly refusing to overwrite an existing license or readme.")
-		if args.interactive:
-			f, name = tempfile.mkstemp(prefix="plugin", suffix=".json", dir=".")
-			print("instead writing to {}".format(name))
-			plugin = {"plugin": plugin}
-			os.write(f, json.dumps(plugin, sort_keys=True, indent=4))
-			os.close(f)
-		sys.exit(0)
+	plugin = {"plugin": plugin}
+	if args.plugin:
+		pluginjson = args.filename
+		skip = False
+		if os.path.isfile(pluginjson) and not args.force and args.plugin:
+			print("{} already exists.".format(pluginjson))
+			response = input("Overwrite it? (N,y)")
+			if response != "y":
+				print("Not overwriting plugin.json")
+				skip = True
+		if not skip:
+			print("Creating plugin.json.")
+			with io.open(args.filename, "w", encoding="utf8") as pluginfile:
+				pluginfile.write(json.dumps(plugin, indent="   "))
 
-	if "license" in plugin and "name" in plugin["license"] and "text" in plugin["license"]:
-		name = plugin["license"]["name"]
-		text = plugin["license"]["text"]
-		license = u"""## License
-	This plugin is released under a [{name}](LICENSE) license.
-	""".format(name=plugin["license"]["name"])
-		print("Creating {licensefile}".format(licensefile=licensefile))
-		io.open(licensefile,"w",encoding="utf8").write(plugin["license"]["text"])
+	if args.readme:
+		readme = os.path.join(os.path.dirname(args.filename), "README.md")
+		skip = False
+		if os.path.isfile(readme) and not args.force:
+			print("{} already exists.".format(readme))
+			response = input("Overwrite it? (N,y)")
+			if response != "y":
+				print("Not overwriting README.md")
+				skip = True
+		if not skip:
+			print("Creating README.md")
+			with io.open(readme, "w", encoding="utf8") as readmeFile:
+				readmeFile.write(generateReadme(plugin["plugin"]))
 
-	elif ("license" in plugin and "name" in plugin["license"]):
-		name = plugin["license"]["name"]
-		license = u"""## License
-		This plugin is released under a {name}] license.
-	""".format(name=plugin["license"]["name"])
-	else:
-		license = ""
+	if args.license:
+		licenseFile = os.path.join(os.path.dirname(args.filename), "LICENSE")
+		skip = False
+		if os.path.isfile(licenseFile) and not args.force:
+			print("{} already exists.".format(licenseFile))
+			response = input("Overwrite it? (N,y)")
+			if response != "y":
+				print("Not overwriting LICENSE")
+				skip = True
+		if not skip:
+			print("Creating LICENSE")
+			with io.open(licenseFile, "w", encoding="utf8") as lic:
+				lic.write(plugin["plugin"]["license"]["text"])
 
-	if "installinstructions" in plugin:
-		install = "## Installation Instructions"
-		for platform in plugin["installinstructions"]:
-			install += "\n\n### {}\n\n{}".format(platform, plugin["installinstructions"][platform])
-
-	if "minimumbinaryninjaversion" in plugin:
-		minimum = "## Minimum Version\n\nThis plugin requires the following minimum version of Binary Ninja:\n\n"
-		minimum += u" * {}\n".format(plugin["minimumbinaryninjaversion"])
-		minimum += "\n"
-	else:
-		minimum = ""
-
-	if "pluginmetadataversion" in plugin:
-		metadataVersion = "## Metadata Version\n\n{}\n\n".format(plugin["pluginmetadataversion"])
-
-	if "dependencies" in plugin:
-		dependencies = u"## Required Dependencies\n\nThe following dependencies are required for this plugin:\n\n"
-		for dependency in plugin["dependencies"]:
-			dependencylist = u", ".join(plugin["dependencies"][dependency])
-			dependencies += u" * {dependency} - {dependencylist}\n".format(dependency = dependency, dependencylist = dependencylist)
-		dependencies += "\n"
-	else:
-		dependencies = ""
-
-	template = u"""# {PluginName} (v{version})
-	Author: **{author}**
-	_{description}_
-	## Description:
-	{longdescription}
-	{install}
-	{minimum}
-	{dependencies}
-	{license}
-	{metadataVersion}
-	""".format(PluginName = plugin["name"], version = plugin["version"],
-			author = plugin["author"], description = plugin["description"],
-			longdescription = plugin["longdescription"], license = license,
-			dependencies = dependencies, minimum = minimum, install = install,
-			metadataVersion = metadataVersion)
-
-	print("Writing {outputfile}".format(outputfile=outputfile))
-	io.open(outputfile, "w", encoding="utf8").write(template)
 
 if __name__ == "__main__":
 	main()
