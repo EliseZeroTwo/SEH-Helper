@@ -22,6 +22,6 @@
 		"other": ["The sample plugin requires [this random package](https://bogus-domain/this-package/) be installed."]
 	},
 	"version": "1.3",
-	"author": "Vector 35 LLC",
+	"author": "Vector 35 Inc",
 	"minimumbinaryninjaversion": 1200
 }

@@ -1,5 +1,5 @@
 # Sample Plugin (v1.0 alpha)
-Author: **Vector 35 LLC**
+Author: **Vector 35 Inc**
 _This is a short description meant to fit on one line._
 ## Description:
 This is a longer description meant for a sample plugin that demonstrates the metadata format for Binary Ninja plugins. Note that the [community-plugins repo]() contains a useful [utility](https://github.com/Vector35/community-plugins/blob/master/generate_plugininfo.py) to validate the plugin.json.
