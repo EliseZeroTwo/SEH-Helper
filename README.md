@@ -1,4 +1,4 @@
-# Sample Plugin (v1.1)
+# Sample Plugin
 Author: **Vector 35 Inc**
 
 _This is a short description meant to fit on one line._
