@@ -12,7 +12,7 @@ Note that originally we recommended specifying the contents of this entire file 
 
 This plugin requires the following minimum version of Binary Ninja:
 
- * 1200
+ * 3000
 
 ## License
 
