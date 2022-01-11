@@ -8,16 +8,6 @@ This is a longer description meant for a sample plugin that demonstrates the met
 
 Note that originally we recommended specifying the contents of this entire file inside of the [plugin.json](./plugin.json) but the latest repository generator will use the readme contents directly which means you should simply leave an empty longdescription field. 
 
-## Minimum Version
-
-This plugin requires the following minimum version of Binary Ninja:
-
- * 3000
-
 ## License
 
 This plugin is released under an [MIT license](./license).
-
-## Metadata Version
-
-2
