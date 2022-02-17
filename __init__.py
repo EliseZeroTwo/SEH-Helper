@@ -57,7 +57,7 @@ class SEHNotifications(UIContextNotification):
 class SEHWidget(QWidget, UIContextNotification):
     def gotoAddr(self, addr):
         for x in self.dict:
-            if x[0] < addr < x[1]:
+            if x[0] <= addr <= x[1]:
                 row = self.dict[x]
                 self.list.setCurrentRow(row)
                 self.listItemClicked(self.list.item(row))
