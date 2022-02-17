@@ -36,7 +36,7 @@ class AddrLabel(QLabel):
         if self.addr != None:
             self.setText(hex(self.addr))
         else:
-            self.setText("")
+            self.clear()
 
 
 class SEHNotifications(UIContextNotification):
@@ -61,7 +61,10 @@ class SEHWidget(QWidget, UIContextNotification):
                 row = self.dict[x]
                 self.list.setCurrentRow(row)
                 self.listItemClicked(self.list.item(row))
-                break
+                return
+        
+        self.list.clearSelection()
+        self.listItemClicked(None)
 
     def gotoButtonClicked(self):
         self.gotoAddr(self.bv.offset)
@@ -185,36 +188,47 @@ class SEHWidget(QWidget, UIContextNotification):
 
         self.notifications = SEHNotifications(self)
 
-    def listItemClicked(self, clickedItem: SEHListItem):
-        self.begin_addr.setAddr(
-            self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress)
-        self.end_addr.setAddr(
-            self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.EndAddress)
-        self.unwind_addr.setAddr(
-            self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.UnwindData)
-
-        self.unwind_version.setText(str(clickedItem.entry.unwindinfo.Version))
-        self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags))
-        self.unwind_prolog_size.setText(
-            str(clickedItem.entry.unwindinfo.SizeOfProlog))
-        self.unwind_code_count.setText(
-            str(clickedItem.entry.unwindinfo.CountOfCodes))
-        self.unwind_frame_register.setText(
-            str(clickedItem.entry.unwindinfo.FrameRegister))
-        self.unwind_frame_offset.setText(
-            str(clickedItem.entry.unwindinfo.FrameOffset))
-        codes = ""
-        for x in clickedItem.entry.unwindinfo.UnwindCodes:
-            codes += str(x) + '\n'
-        self.unwind_codes.setText(codes)
-
-        if hasattr(clickedItem.entry.unwindinfo, 'ExceptionHandler'):
-            self.unwind_exception_handler.setAddr(
-                self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.unwindinfo.ExceptionHandler)
-        else:
+    def listItemClicked(self, clickedItem):
+        if clickedItem == None:
+            self.begin_addr.setAddr(None)
+            self.end_addr.setAddr(None)
+            self.unwind_addr.setAddr(None)
+            self.unwind_version.clear()
+            self.unwind_flags.clear()
+            self.unwind_prolog_size.clear()
+            self.unwind_code_count.clear()
+            self.unwind_frame_register.clear()
+            self.unwind_frame_offset.clear()
+            self.unwind_codes.clear()
             self.unwind_exception_handler.clear()
+        else:
+            self.begin_addr.setAddr(
+                self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress)
+            self.end_addr.setAddr(
+                self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.EndAddress)
+            self.unwind_addr.setAddr(
+                self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.UnwindData)
 
-        return
+            self.unwind_version.setText(str(clickedItem.entry.unwindinfo.Version))
+            self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags))
+            self.unwind_prolog_size.setText(
+                str(clickedItem.entry.unwindinfo.SizeOfProlog))
+            self.unwind_code_count.setText(
+                str(clickedItem.entry.unwindinfo.CountOfCodes))
+            self.unwind_frame_register.setText(
+                str(clickedItem.entry.unwindinfo.FrameRegister))
+            self.unwind_frame_offset.setText(
+                str(clickedItem.entry.unwindinfo.FrameOffset))
+            codes = ""
+            for x in clickedItem.entry.unwindinfo.UnwindCodes:
+                codes += str(x) + '\n'
+            self.unwind_codes.setText(codes)
+
+            if hasattr(clickedItem.entry.unwindinfo, 'ExceptionHandler'):
+                self.unwind_exception_handler.setAddr(
+                    self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.unwindinfo.ExceptionHandler)
+            else:
+                self.unwind_exception_handler.clear()
 
     @staticmethod
     def createPane(context):
