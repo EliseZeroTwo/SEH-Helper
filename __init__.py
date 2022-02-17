@@ -190,6 +190,8 @@ class SEHWidget(QWidget, UIContextNotification):
             self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress)
         self.end_addr.setAddr(
             self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.EndAddress)
+        self.unwind_addr.setAddr(
+            self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.UnwindData)
 
         self.unwind_version.setText(str(clickedItem.entry.unwindinfo.Version))
         self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags))
