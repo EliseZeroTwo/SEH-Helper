@@ -15,11 +15,15 @@ class SEHListItem(QListWidgetItem):
 
 
 class AddrLabel(QLabel):
-    def __init__(self, address, bv: BinaryView):
+    def __init__(self, address, bv: BinaryView, opt_text = None):
         self.bv = bv
         self.addr = address
+        self.opt_text = opt_text
         if self.addr != None:
-            QLabel.__init__(self, hex(self.addr))
+            if opt_text != None:
+                QLabel.__init__(self, opt_text + hex(self.addr))
+            else:
+                QLabel.__init__(self, hex(self.addr))
         else:
             QLabel.__init__(self, "")
 
@@ -34,10 +38,16 @@ class AddrLabel(QLabel):
     def setAddr(self, addr):
         self.addr = addr
         if self.addr != None:
-            self.setText(hex(self.addr))
+            if self.opt_text != None:
+                self.setText(self.opt_text + hex(self.addr))
+            else:
+                self.setText(hex(self.addr))
         else:
             self.clear()
 
+    def setOptText(self, text):
+        self.opt_text = text
+        self.setAddr(self.addr)
 
 class SEHNotifications(UIContextNotification):
     def __init__(self, widget):
@@ -105,7 +115,7 @@ class SEHWidget(QWidget, UIContextNotification):
 
         unwind_layout = QVBoxLayout()
         self.unwind_version = QLabel("")
-        self.unwind_prolog_size = QLabel("")
+        self.unwind_prolog_size = AddrLabel(None, bv, "")
         self.unwind_code_count = QLabel("")
         self.unwind_frame_register = QLabel("")
         self.unwind_frame_offset = QLabel("")
@@ -223,8 +233,14 @@ class SEHWidget(QWidget, UIContextNotification):
                 unwind_flags.append("UNW_FLAG_CHAININFO")
             self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags) + " (" + (", ".join(unwind_flags)) + ")")
 
-            self.unwind_prolog_size.setText(
-                str(clickedItem.entry.unwindinfo.SizeOfProlog))
+            if clickedItem.entry.unwindinfo.SizeOfProlog != 0:
+                self.unwind_prolog_size.setOptText(
+                    str(clickedItem.entry.unwindinfo.SizeOfProlog) + " bytes, ends at: ")
+            else:
+                self.unwind_prolog_size.setOptText(
+                    str(clickedItem.entry.unwindinfo.SizeOfProlog) + " bytes")
+                
+            self.unwind_prolog_size.setAddr(self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress + clickedItem.entry.unwindinfo.SizeOfProlog)
             self.unwind_code_count.setText(
                 str(clickedItem.entry.unwindinfo.CountOfCodes))
             self.unwind_frame_register.setText(
