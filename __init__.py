@@ -210,7 +210,19 @@ class SEHWidget(QWidget, UIContextNotification):
                 self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.UnwindData)
 
             self.unwind_version.setText(str(clickedItem.entry.unwindinfo.Version))
-            self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags))
+
+
+            unwind_flags = []
+            if clickedItem.entry.unwindinfo.Flags == 0:
+                unwind_flags.append("UNW_FLAG_NHANDLER")
+            if clickedItem.entry.unwindinfo.Flags & 1:
+                unwind_flags.append("UNW_FLAG_EHANDLER")
+            if clickedItem.entry.unwindinfo.Flags & 2:
+                unwind_flags.append("UNW_FLAG_UHANDLER")
+            if clickedItem.entry.unwindinfo.Flags & 4:
+                unwind_flags.append("UNW_FLAG_CHAININFO")
+            self.unwind_flags.setText(str(clickedItem.entry.unwindinfo.Flags) + " (" + (", ".join(unwind_flags)) + ")")
+
             self.unwind_prolog_size.setText(
                 str(clickedItem.entry.unwindinfo.SizeOfProlog))
             self.unwind_code_count.setText(
