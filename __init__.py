@@ -37,11 +37,12 @@ class AddrLabel(QLabel):
 
     def setAddr(self, addr):
         self.addr = addr
-        if self.addr != None:
-            if self.opt_text != None:
-                self.setText(self.opt_text + hex(self.addr))
-            else:
-                self.setText(hex(self.addr))
+        if self.addr != None and self.opt_text != None:
+            self.setText(self.opt_text + hex(self.addr))
+        elif self.addr != None:
+            self.setText(hex(self.addr))
+        elif self.opt_text != None:
+            self.setText(self.opt_text)
         else:
             self.clear()
 
@@ -236,11 +237,12 @@ class SEHWidget(QWidget, UIContextNotification):
             if clickedItem.entry.unwindinfo.SizeOfProlog != 0:
                 self.unwind_prolog_size.setOptText(
                     str(clickedItem.entry.unwindinfo.SizeOfProlog) + " bytes, ends at: ")
+                self.unwind_prolog_size.setAddr(self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress + clickedItem.entry.unwindinfo.SizeOfProlog)
             else:
                 self.unwind_prolog_size.setOptText(
                     str(clickedItem.entry.unwindinfo.SizeOfProlog) + " bytes")
+                self.unwind_prolog_size.setAddr(None)
                 
-            self.unwind_prolog_size.setAddr(self.file.OPTIONAL_HEADER.ImageBase + clickedItem.entry.struct.BeginAddress + clickedItem.entry.unwindinfo.SizeOfProlog)
             self.unwind_code_count.setText(
                 str(clickedItem.entry.unwindinfo.CountOfCodes))
             self.unwind_frame_register.setText(
